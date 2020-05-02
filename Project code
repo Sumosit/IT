@@ -1,0 +1,278 @@
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <vector>
+#include <random>
+
+using namespace std;
+
+struct node
+{
+	node* leftChild;
+	node* rightChild;
+	double frequency;
+	string content;
+	string code;
+};
+
+string chars = "", nums[300], encoded = "", decoded = "", encoded_withErrors = "", encoded_checked = "";
+int freqCount = 0;
+double part2Freq[300];
+string text = "~", dump = "", part2Text;
+int c = 0;
+vector<node> nodeArray;
+
+string part5_AddErrors(string encoded);
+
+node extractMin()
+{
+	double temp = (double)INT_MAX;
+	vector<node>::iterator i1, pos;
+	for (i1 = nodeArray.begin(); i1 != nodeArray.end(); i1++)
+	{
+
+		if (temp > (*i1).frequency)
+		{
+			pos = i1;
+			temp = (*i1).frequency;
+		}
+	}
+
+	node tempNode = (*pos);
+	nodeArray.erase(pos);
+
+	return tempNode;
+}
+
+
+
+node Tree()
+{
+	while (!nodeArray.empty())
+	{
+		node* tempNode = new node;
+		node* tempNode1 = new node;
+		node* tempNode2 = new node;
+		*tempNode1 = extractMin();
+		*tempNode2 = extractMin();
+
+		tempNode->leftChild = tempNode1;
+		tempNode->rightChild = tempNode2;
+		tempNode->frequency = tempNode1->frequency + tempNode2->frequency;
+		nodeArray.push_back(*tempNode);
+		if (nodeArray.size() == 1)//only the root node exsits
+		{
+			break;
+		}
+	}
+	return nodeArray[0];
+}
+
+
+void BFS(node* temproot, string s)
+{
+	node* root1 = new node;
+	root1 = temproot;
+
+	root1->code = s;
+	if (root1 == NULL)
+	{
+
+	}
+	else if (root1->leftChild == NULL && root1->rightChild == NULL)
+	{
+		chars = chars + root1->content;
+		nums[c] = root1->code;
+		c++;
+	}
+	else
+	{
+		root1->leftChild->code = s.append("0");
+		s.erase(s.end() - 1);
+		root1->rightChild->code = s.append("1");
+		s.erase(s.end() - 1);
+
+		BFS(root1->leftChild, s.append("0"));
+		s.erase(s.end() - 1);
+		BFS(root1->rightChild, s.append("1"));
+		s.erase(s.end() - 1);
+	}
+}
+
+string kill_space(string text) {
+	
+	string killed = "";
+	for (int i = 0; i < text.length(); i++) {
+		if (text[i] != ' ') {
+			killed = killed + text[i];
+		}
+	}
+	return killed;
+}
+
+char evenOrOdd(int i) {
+	if (i == 0) {
+		return '0';
+	}
+	else if (i == 1) {
+		return '1';
+	}
+	else if (i % 2 == 0) {
+		return '0';
+	}
+	else if (i % 2 != 0) {
+		return '1';
+	}
+}
+
+
+void Huffman(string part2Text, int m, double part2Freq[])
+{
+	int size = m, i;
+	double tempDouble;
+	string tempString = "", decoded = "";
+
+	for (i = 0; i < size; i++)
+	{
+		node tempNode;
+		tempString = part2Text[i];
+		tempDouble = part2Freq[i];
+
+		tempNode.frequency = tempDouble;
+		tempNode.content = tempString;
+		tempNode.leftChild = NULL;
+		tempNode.rightChild = NULL;
+		nodeArray.push_back(tempNode);
+	}
+
+	node root = Tree();
+	chars = "";
+	BFS(&root, "");
+}
+
+int i, j;
+
+void main() {
+
+	int size, count = 0;
+	ifstream in("text.txt");
+
+	if (in.is_open())
+	{
+		string t;
+		while (getline(in, t))
+		{
+			text = text + t;
+		}
+	}
+	in.close();
+
+	size = text.length();
+
+	for (i = 0; i < size; i++) {
+		for (j = 0; j < size; j++) {
+			if (text[i] == text[j]) {
+				count++;
+			}
+		}
+
+		for (j = 0; j < dump.length(); j++) {
+			if (dump[j] == text[i]) {
+				break;
+			}
+			else if (j == dump.length() - 1) {
+				part2Text = part2Text + text[i];
+				part2Freq[freqCount] = float((count + 0.0) / (size + 0.0));
+				freqCount++;
+			}
+		}
+		count = 0;
+		dump = dump + text[i];
+	}
+
+	ofstream out;
+	out.open("answer.txt");
+	Huffman(part2Text, part2Text.length(), part2Freq);
+	out << "Text:" << endl << text << endl << endl << "Probabilities:" << endl;
+	for (i = 0; i < part2Text.length(); i++) {
+		out << part2Text[i] << "\t" << part2Freq[i] << "\t" << nums[i] << endl;
+	}
+	for (i = 0; i < text.length(); i++) {
+		for (j = 0; j < chars.length(); j++) {
+			if (text[i] == chars[j]) {
+				encoded = encoded + nums[j] + " ";
+			}	
+		}
+	}
+	out << endl << "Encoded:" << endl << encoded << endl;
+	
+	string decoded2 = "";
+	for (i = 0; i < encoded.length(); i++) {
+		if (encoded[i] == ' ') {
+			for (j = 0; j < chars.length(); j++) {
+				if (decoded == nums[j]) {
+					decoded2 = decoded2 + chars[j];
+				}
+			}
+			decoded = "";
+		}
+		else {
+			decoded = decoded + encoded[i];
+		}
+	}
+	out << endl << "Decoded:" << endl << decoded2 << endl;
+
+	// even => 0
+	// odd  => 1
+	encoded = kill_space(encoded);
+	string ham = "";
+	int key[3][6] = {1,1,1,1,0,0,
+					 0,1,1,0,1,0,
+					 1,1,0,0,0,1};
+	int max = 0;
+	dump = "";
+	for (i = 0; i < encoded.length(); i++) {
+		ham = ham + encoded[i];
+		if ((i + 1) % 3 == 0) {
+			int x = (key[0][0] * int(ham[0] - '0')) + (key[0][1] * int(ham[1] - '0')) + (key[0][2] * int(ham[2] - '0'));
+			int y = (key[1][0] * int(ham[0] - '0')) + (key[1][1] * int(ham[1] - '0')) + (key[1][2] * int(ham[2] - '0'));
+			int z = (key[2][0] * int(ham[0] - '0')) + (key[2][1] * int(ham[1] - '0')) + (key[2][2] * int(ham[2] - '0'));
+			ham = ham + evenOrOdd(x) + evenOrOdd(y) + evenOrOdd(z);
+			// cout << ham << endl;
+			encoded_withErrors = encoded_withErrors + ham;
+			ham = "";
+			max = i + 1;
+		}
+	}
+	for (i = max; i < encoded.length(); i++) {
+		dump = dump + encoded[i];
+	}
+	out << endl << "Encoded with errors:" << endl << encoded_withErrors << dump << endl;
+
+	// ×òîáû ïðîâåðèòü íà îøèáêè ìû áåð¸ì êàæäûå 6 ÷èñåë è óìíîæàåì íà êëþ÷, åñëè â êîíå÷íîì ðåçóëüòàòå âûõîäèò 3 íóëÿ, çíà÷èò îøèáîê íåòó è ìîæíî áðàòü ïåðâûå 3 ÷èñëà.
+	ham = "";
+	for (i = 0; i < encoded_withErrors.length(); i++) {
+		ham = ham + encoded_withErrors[i];
+		if ((i + 1) % 6 == 0) {
+			//cout << ham << endl;
+			int x = (key[0][0] * int(ham[0] - '0')) + (key[0][1] * int(ham[1] - '0')) + (key[0][2] * int(ham[2] - '0')) + (key[0][3] * int(ham[3] - '0')) + (key[0][4] * int(ham[4] - '0')) + (key[0][5] * int(ham[5] - '0'));
+			int y = (key[1][0] * int(ham[0] - '0')) + (key[1][1] * int(ham[1] - '0')) + (key[1][2] * int(ham[2] - '0')) + (key[1][3] * int(ham[3] - '0')) + (key[1][4] * int(ham[4] - '0')) + (key[1][5] * int(ham[5] - '0'));
+			int z = (key[2][0] * int(ham[0] - '0')) + (key[2][1] * int(ham[1] - '0')) + (key[2][2] * int(ham[2] - '0')) + (key[2][3] * int(ham[3] - '0')) + (key[2][4] * int(ham[4] - '0')) + (key[2][5] * int(ham[5] - '0'));
+			//cout << x << " " << y << " " << z << endl;
+			/*if (i == 11) {
+				z = 3;
+			}*/
+			if (evenOrOdd(x) == '0' && evenOrOdd(y) == '0' && evenOrOdd(z) == '0') {
+				encoded_checked = encoded_checked + ham[0] + ham[1] + ham[2];
+				cout << "Successful" << endl;
+			}
+			else {
+				cout << "Error" << endl;
+			}
+			ham = "";
+		}
+	}
+	encoded_checked = encoded_checked + dump;
+	out << endl << "Checked:" << endl << encoded_checked << endl;
+	out.close();
+}
